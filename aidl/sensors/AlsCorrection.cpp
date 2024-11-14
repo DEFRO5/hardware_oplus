@@ -8,11 +8,10 @@
 
 #include <android-base/properties.h>
 #include <android/binder_manager.h>
-#include <binder/IBinder.h>
-#include <binder/IServiceManager.h>
 #include <cmath>
 #include <fstream>
 #include <log/log.h>
+#include <tinyxml2.h>
 #include <utils/Timers.h>
 
 using aidl::vendor::lineage::oplus_als::AreaRgbCaptureResult;
@@ -20,9 +19,13 @@ using aidl::vendor::lineage::oplus_als::IAreaCapture;
 using android::base::GetBoolProperty;
 using android::base::GetIntProperty;
 using android::base::GetProperty;
+using namespace tinyxml2;
 
 #define ALS_CALI_DIR "/proc/sensor/als_cali/"
 #define BRIGHTNESS_DIR "/sys/class/backlight/panel0-backlight/"
+#define ALS_ARGS_DIR "/odm/etc/fusionlight_profile"
+#define ALS_ARGS_XML1 "oplus_fusion_light_args.xml"
+#define ALS_ARGS_XML2 "oplus_fusion_light_args_2.xml"
 
 namespace android {
 namespace hardware {
@@ -94,33 +97,61 @@ static T get(const std::string& path, const T& def) {
 }
 
 void AlsCorrection::init() {
-    std::istringstream is;
+    XMLDocument doc;
+    if (doc.LoadFile("/odm/etc/fusionlight_profile/oplus_fusion_light_args_2.xml") != XML_SUCCESS) {
+        ALOGE("Failed to load fusionlight configuration xml");
+        return;
+    }
 
-    conf.hbr = GetBoolProperty("vendor.sensors.als_correction.hbr", false);
-    conf.bias = GetIntProperty("vendor.sensors.als_correction.bias", 0);
-    is = std::istringstream(GetProperty("vendor.sensors.als_correction.rgbw_max_lux_div", ""));
-    is >> conf.rgbw_max_lux_div[0] >> conf.rgbw_max_lux_div[1]
-        >> conf.rgbw_max_lux_div[2] >> conf.rgbw_max_lux_div[3];
-    is = std::istringstream(GetProperty("vendor.sensors.als_correction.rgbw_poly1", ""));
-    is >> conf.rgbw_poly[0][0] >> conf.rgbw_poly[0][1]
-        >> conf.rgbw_poly[0][2] >> conf.rgbw_poly[0][3];
-    is = std::istringstream(GetProperty("vendor.sensors.als_correction.rgbw_poly2", ""));
-    is >> conf.rgbw_poly[1][0] >> conf.rgbw_poly[1][1]
-        >> conf.rgbw_poly[1][2] >> conf.rgbw_poly[1][3];
-    is = std::istringstream(GetProperty("vendor.sensors.als_correction.rgbw_poly3", ""));
-    is >> conf.rgbw_poly[2][0] >> conf.rgbw_poly[2][1]
-        >> conf.rgbw_poly[2][2] >> conf.rgbw_poly[2][3];
-    is = std::istringstream(GetProperty("vendor.sensors.als_correction.rgbw_poly4", ""));
-    is >> conf.rgbw_poly[3][0] >> conf.rgbw_poly[3][1]
-        >> conf.rgbw_poly[3][2] >> conf.rgbw_poly[3][3];
-    is = std::istringstream(GetProperty("vendor.sensors.als_correction.grayscale_weights", ""));
-    is >> conf.grayscale_weights[0] >> conf.grayscale_weights[1] >> conf.grayscale_weights[2];
-    is = std::istringstream(GetProperty("vendor.sensors.als_correction.sensor_gaincal_points", ""));
-    is >> conf.sensor_gaincal_points[0] >> conf.sensor_gaincal_points[1]
-        >> conf.sensor_gaincal_points[2] >> conf.sensor_gaincal_points[3];
-    is = std::istringstream(GetProperty("vendor.sensors.als_correction.sensor_inverse_gain", ""));
-    is >> conf.sensor_inverse_gain[0] >> conf.sensor_inverse_gain[1]
-        >> conf.sensor_inverse_gain[2] >> conf.sensor_inverse_gain[3];
+    XMLElement* root = doc.FirstChildElement("Attributes");
+    if (!root) {
+        ALOGE("Failed to find root element <Attributes>");
+        return;
+    }
+
+    XMLElement* args = root->FirstChildElement("Args");
+    if (!args) {
+        ALOGE("Failed to find <Args> element in XML.");
+        return;
+    }
+
+    const char* rgbwTags[] = {"R", "G", "B", "W"};
+    for (int i = 0; i < 4; ++i) {
+        XMLElement* rgbwElem = args->FirstChildElement(rgbwTags[i]);
+        if (rgbwElem) {
+            rgbwElem->FirstChildElement((std::string(rgbwTags[i]) + "Max").c_str())->QueryFloatText(&conf.rgbw_max_lux[i]);
+            //rgbwElem->FirstChildElement((std::string(rgbwTags[i]) + "MaxCal").c_str())->QueryFloatText(&conf.rgbw_max_lux_cal[i]);
+            rgbwElem->FirstChildElement((std::string(rgbwTags[i]) + "Comp1").c_str())->QueryFloatText(&conf.rgbw_poly[i][0]);
+            rgbwElem->FirstChildElement((std::string(rgbwTags[i]) + "Comp2").c_str())->QueryFloatText(&conf.rgbw_poly[i][1]);
+            rgbwElem->FirstChildElement((std::string(rgbwTags[i]) + "Comp3").c_str())->QueryFloatText(&conf.rgbw_poly[i][2]);
+        }
+    }
+
+    XMLElement* grayElem = args->FirstChildElement("Gray");
+    if (grayElem) {
+        grayElem->FirstChildElement("Grayscale1")->QueryFloatText(&conf.grayscale_weights[0]);
+        grayElem->FirstChildElement("Grayscale2")->QueryFloatText(&conf.grayscale_weights[1]);
+        grayElem->FirstChildElement("Grayscale3")->QueryFloatText(&conf.grayscale_weights[2]);
+    }
+
+    XMLElement* calElem = args->FirstChildElement("Cal");
+    if (calElem) {
+        calElem->FirstChildElement("RawRouCoeLevel1")->QueryFloatText(&conf.sensor_inverse_gain[3]);
+        calElem->FirstChildElement("RawRouCoeLevel2")->QueryFloatText(&conf.sensor_inverse_gain[2]);
+        calElem->FirstChildElement("RawRouCoeLevel3")->QueryFloatText(&conf.sensor_inverse_gain[1]);
+        calElem->FirstChildElement("RawRouCoeLevel4")->QueryFloatText(&conf.sensor_inverse_gain[0]);
+
+        // Additional calibration parameter
+        //calElem->FirstChildElement("CalCoe")->QueryFloatText(&conf.sensor_inverse_gain[0]);
+    }
+
+    XMLElement* seperateLuxElem = args->FirstChildElement("SeperateLux");
+    if (seperateLuxElem) {
+        seperateLuxElem->FirstChildElement("SeperatePoint1")->QueryFloatText(&conf.sensor_gaincal_points[0]);
+        seperateLuxElem->FirstChildElement("SeperatePoint2")->QueryFloatText(&conf.sensor_gaincal_points[1]);
+        seperateLuxElem->FirstChildElement("SeperatePoint3")->QueryFloatText(&conf.sensor_gaincal_points[2]);
+        seperateLuxElem->FirstChildElement("SeperatePoint4")->QueryFloatText(&conf.sensor_gaincal_points[3]);
+    }
 
     float rgbw_acc = 0.0;
     for (int i = 0; i < 4; i++) {

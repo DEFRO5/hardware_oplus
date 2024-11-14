@@ -49,6 +49,7 @@ cc_binary {
         "libbinder",
         "libbinder_ndk",
         "libhidlbase",
+        "libtinyxml2",
         "vendor.lineage.oplus_als-V1-ndk",
     ],
     static_libs: [
