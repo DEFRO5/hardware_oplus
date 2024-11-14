@@ -536,7 +536,7 @@ void HalProxy::initializeSensorList() {
                     if (static_cast<int>(sensor.type) == SENSOR_TYPE_QTI_WISE_LIGHT) {
                         sensor.type = V2_1::SensorType::LIGHT;
                         sensor.typeAsString = SENSOR_STRING_TYPE_LIGHT;
-                        AlsCorrection::init();
+                        AlsCorrection::init(sensor.name.c_str());
                     }
                     bool keep = patchOplusPickupSensor(sensor) && patchOplusGlanceSensor(sensor);
                     if (!keep) {
@@ -714,7 +714,7 @@ void HalProxy::postEventsToMessageQueue(const std::vector<Event>& eventsList, si
     std::vector<Event> events(eventsList);
     for (auto& event : events) {
         if (static_cast<int>(event.sensorType) == SENSOR_TYPE_QTI_WISE_LIGHT) {
-            AlsCorrection::process(event);
+            event.u.scalar = AlsCorrection::process(event);
         }
     }
     if (mPendingWriteEventsQueue.empty()) {

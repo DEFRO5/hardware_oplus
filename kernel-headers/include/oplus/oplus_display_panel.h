@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 The LineageOS Project
+ * Copyright (C) 2022-2024 The LineageOS Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,15 +16,19 @@
 
 #pragma once
 
+//#include "oplus_display_panel_common.h"
 #include <sys/ioctl.h>
 
 #define OPLUS_PANEL_IOCTL_BASE 'o'
 
 #define PANEL_IOCTL_SET_SEED _IOW(OPLUS_PANEL_IOCTL_BASE, 0x03, unsigned int)
 #define PANEL_IOCTL_GET_SEED _IOWR(OPLUS_PANEL_IOCTL_BASE, 0x04, unsigned int)
+#define PANEL_IOCTL_GET_MAX_BRIGHTNESS _IOWR(OPLUS_PANEL_IOCTL_BASE, 0x0B, unsigned int)
+#define PANEL_IOCTL_GET_PANELINFO _IOWR(OPLUS_PANEL_IOCTL_BASE, 0x0C, struct panel_info)
 #define PANEL_IOCTL_SET_HBM _IOW(OPLUS_PANEL_IOCTL_BASE, 0x0F, unsigned int)
 #define PANEL_IOCTL_GET_HBM _IOWR(OPLUS_PANEL_IOCTL_BASE, 0x10, unsigned int)
 #define PANEL_IOCTL_SET_DIMLAYER_HBM _IOW(OPLUS_PANEL_IOCTL_BASE, 0x1F, unsigned int)
 #define PANEL_IOCTL_SET_DIMLAYER_BL_EN _IOW(OPLUS_PANEL_IOCTL_BASE, 0x21, unsigned int)
 #define PANEL_IOCTL_GET_DIMLAYER_BL_EN _IOWR(OPLUS_PANEL_IOCTL_BASE, 0x22, unsigned int)
 #define PANEL_IOCTL_SET_FP_PRESS _IOW(OPLUS_PANEL_IOCTL_BASE, 0x29, unsigned int)
+#define PANEL_IOCTL_GET_OPLUS_BRIGHTNESS _IOWR(OPLUS_PANEL_IOCTL_BASE,0x2B, unsigned int)

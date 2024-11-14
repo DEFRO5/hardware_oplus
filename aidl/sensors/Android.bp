@@ -32,6 +32,7 @@ cc_binary {
     header_libs: [
         "android.hardware.sensors@2.X-multihal.header",
         "android.hardware.sensors@2.X-shared-utils",
+        "kernel_headers.oplus",
     ],
     init_rc: ["android.hardware.sensors-service.oplus-multihal.rc"],
     vintf_fragments: ["android.hardware.sensors.oplus-multihal.xml"],
@@ -49,6 +50,7 @@ cc_binary {
         "libbinder",
         "libbinder_ndk",
         "libhidlbase",
+        "libtinyxml2",
         "vendor.lineage.oplus_als-V1-ndk",
     ],
     static_libs: [
