@@ -24,7 +24,6 @@ using namespace tinyxml2;
 #define ALS_CALI_DIR "/proc/sensor/als_cali/"
 #define BRIGHTNESS_DIR "/sys/class/backlight/panel0-backlight/"
 #define ALS_ARGS_DIR "/odm/etc/fusionlight_profile"
-#define ALS_ARGS_XML1 "oplus_fusion_light_args.xml"
 #define ALS_ARGS_XML2 "oplus_fusion_light_args_2.xml"
 
 namespace android {
@@ -32,6 +31,65 @@ namespace hardware {
 namespace sensors {
 namespace V2_1 {
 namespace implementation {
+
+XMLElement* AlsCorrection::argsElement = nullptr;
+bool AlsCorrection::mloadArgsFromXMLAlready = false;
+
+float AlsCorrection::RMax = 0.0f;
+float AlsCorrection::RMaxCal = 0.0f;
+float AlsCorrection::RComp1 = 0.0f;
+float AlsCorrection::RComp2 = 0.0f;
+float AlsCorrection::RComp3 = 0.0f;
+float AlsCorrection::RCompDel = 0.0f;
+
+float AlsCorrection::GMax = 0.0f;
+float AlsCorrection::GMaxCal = 0.0f;
+float AlsCorrection::GComp1 = 0.0f;
+float AlsCorrection::GComp2 = 0.0f;
+float AlsCorrection::GComp3 = 0.0f;
+float AlsCorrection::GCompDel = 0.0f;
+
+float AlsCorrection::BMax = 0.0f;
+float AlsCorrection::BMaxCal = 0.0f;
+float AlsCorrection::BComp1 = 0.0f;
+float AlsCorrection::BComp2 = 0.0f;
+float AlsCorrection::BComp3 = 0.0f;
+float AlsCorrection::BCompDel = 0.0f;
+
+float AlsCorrection::WMax = 0.0f;
+float AlsCorrection::WMaxCal = 0.0f;
+float AlsCorrection::WComp1 = 0.0f;
+float AlsCorrection::WComp2 = 0.0f;
+float AlsCorrection::WComp3 = 0.0f;
+float AlsCorrection::WCompDel = 0.0f;
+
+float AlsCorrection::Grayscale1 = 0.0f;
+float AlsCorrection::Grayscale2 = 0.0f;
+float AlsCorrection::Grayscale3 = 0.0f;
+
+float AlsCorrection::LevelCalArg = 0.0f;
+float AlsCorrection::RawRouCoeLevel1 = 0.0f;
+float AlsCorrection::RawRouCoeLevel2 = 0.0f;
+float AlsCorrection::RawRouCoeLevel3 = 0.0f;
+float AlsCorrection::RawRouCoeLevel4 = 0.0f;
+float AlsCorrection::CalCoe = 0.0f;
+
+int AlsCorrection::RetType = 0;
+int AlsCorrection::ParagraphCount = 0;
+float AlsCorrection::SeperatePoint1 = 0.0f;
+float AlsCorrection::SeperatePoint2 = 0.0f;
+float AlsCorrection::SeperatePoint3 = 0.0f;
+float AlsCorrection::SeperatePoint4 = 0.0f;
+float AlsCorrection::SP1value1 = 0.0f;
+float AlsCorrection::SP1value2 = 0.0f;
+float AlsCorrection::SP2value1 = 0.0f;
+float AlsCorrection::SP2value2 = 0.0f;
+float AlsCorrection::SP3value1 = 0.0f;
+float AlsCorrection::SP3value2 = 0.0f;
+float AlsCorrection::SP4value1 = 0.0f;
+float AlsCorrection::SP4value2 = 0.0f;
+float AlsCorrection::SP5value1 = 0.0f;
+float AlsCorrection::SP5value2 = 0.0f;
 
 static const std::string rgbw_max_lux_paths[4] = {
     ALS_CALI_DIR "red_max_lux",
@@ -96,62 +154,120 @@ static T get(const std::string& path, const T& def) {
     return file.fail() ? def : result;
 }
 
-void AlsCorrection::init() {
-    XMLDocument doc;
-    if (doc.LoadFile("/odm/etc/fusionlight_profile/oplus_fusion_light_args_2.xml") != XML_SUCCESS) {
-        ALOGE("Failed to load fusionlight configuration xml");
-        return;
-    }
+void AlsCorrection::loadRGBW(XMLElement* argsElement)
+{
+    const char* rgbwColors[] = {"R", "G", "B", "W"};
+    float* maxValues[] = {&RMax, &GMax, &BMax, &WMax};
+    float* maxCalValues[] = {&RMaxCal, &GMaxCal, &BMaxCal, &WMaxCal};
+    float* comp1Values[] = {&RComp1, &GComp1, &BComp1, &WComp1};
+    float* comp2Values[] = {&RComp2, &GComp2, &BComp2, &WComp2};
+    float* comp3Values[] = {&RComp3, &GComp3, &BComp3, &WComp3};
+    float* compDelValues[] = {&RCompDel, &GCompDel, &BCompDel, &WCompDel};
 
-    XMLElement* root = doc.FirstChildElement("Attributes");
-    if (!root) {
-        ALOGE("Failed to find root element <Attributes>");
-        return;
-    }
-
-    XMLElement* args = root->FirstChildElement("Args");
-    if (!args) {
-        ALOGE("Failed to find <Args> element in XML.");
-        return;
-    }
-
-    const char* rgbwTags[] = {"R", "G", "B", "W"};
     for (int i = 0; i < 4; ++i) {
-        XMLElement* rgbwElem = args->FirstChildElement(rgbwTags[i]);
-        if (rgbwElem) {
-            rgbwElem->FirstChildElement((std::string(rgbwTags[i]) + "Max").c_str())->QueryFloatText(&conf.rgbw_max_lux[i]);
-            //rgbwElem->FirstChildElement((std::string(rgbwTags[i]) + "MaxCal").c_str())->QueryFloatText(&conf.rgbw_max_lux_cal[i]);
-            rgbwElem->FirstChildElement((std::string(rgbwTags[i]) + "Comp1").c_str())->QueryFloatText(&conf.rgbw_poly[i][0]);
-            rgbwElem->FirstChildElement((std::string(rgbwTags[i]) + "Comp2").c_str())->QueryFloatText(&conf.rgbw_poly[i][1]);
-            rgbwElem->FirstChildElement((std::string(rgbwTags[i]) + "Comp3").c_str())->QueryFloatText(&conf.rgbw_poly[i][2]);
+        XMLElement* colorElement = argsElement->FirstChildElement(rgbwColors[i]);
+        XMLElement* currentElement = colorElement->FirstChildElement();
+
+        if (currentElement) *maxValues[i] = std::stof(currentElement->GetText());
+        currentElement = currentElement->NextSiblingElement();
+
+        if (currentElement) *maxCalValues[i] = std::stof(currentElement->GetText());
+        currentElement = currentElement->NextSiblingElement();
+
+        if (currentElement) *comp1Values[i] = std::stof(currentElement->GetText());
+        currentElement = currentElement->NextSiblingElement();
+
+        if (currentElement) *comp2Values[i] = std::stof(currentElement->GetText());
+        currentElement = currentElement->NextSiblingElement();
+
+        if (currentElement) *comp3Values[i] = std::stof(currentElement->GetText());
+        currentElement = currentElement->NextSiblingElement();
+
+        if (currentElement) *compDelValues[i] = std::stof(currentElement->GetText());
+    }
+}
+
+
+void AlsCorrection::loadGrayAndCal(XMLElement* argsElement) {
+    XMLElement* grayElement = argsElement->FirstChildElement("Gray");
+    XMLElement* calElement = argsElement->FirstChildElement("Cal");
+
+    if (grayElement) {
+        XMLElement* grayscale1Element = grayElement->FirstChildElement("Grayscale1");
+        XMLElement* grayscale2Element = grayElement->FirstChildElement("Grayscale2");
+        XMLElement* grayscale3Element = grayElement->FirstChildElement("Grayscale3");
+
+        if (grayscale1Element && grayscale2Element && grayscale3Element) {
+            Grayscale1 = std::stof(grayscale1Element->GetText());
+            Grayscale2 = std::stof(grayscale2Element->GetText());
+            Grayscale3 = std::stof(grayscale3Element->GetText());
         }
     }
 
-    XMLElement* grayElem = args->FirstChildElement("Gray");
-    if (grayElem) {
-        grayElem->FirstChildElement("Grayscale1")->QueryFloatText(&conf.grayscale_weights[0]);
-        grayElem->FirstChildElement("Grayscale2")->QueryFloatText(&conf.grayscale_weights[1]);
-        grayElem->FirstChildElement("Grayscale3")->QueryFloatText(&conf.grayscale_weights[2]);
+    if (calElement) {
+        XMLElement* levelCalArgElement = calElement->FirstChildElement("LevelCalArg");
+        XMLElement* rawRouCoeLevel1Element = calElement->FirstChildElement("RawRouCoeLevel1");
+        XMLElement* rawRouCoeLevel2Element = calElement->FirstChildElement("RawRouCoeLevel2");
+        XMLElement* rawRouCoeLevel3Element = calElement->FirstChildElement("RawRouCoeLevel3");
+        XMLElement* rawRouCoeLevel4Element = calElement->FirstChildElement("RawRouCoeLevel4");
+        XMLElement* calCoeElement = calElement->FirstChildElement("CalCoe");
+
+        if (levelCalArgElement && rawRouCoeLevel1Element && rawRouCoeLevel2Element &&
+            rawRouCoeLevel3Element && rawRouCoeLevel4Element && calCoeElement) {
+            LevelCalArg = std::stof(levelCalArgElement->GetText());
+            RawRouCoeLevel1 = std::stof(rawRouCoeLevel1Element->GetText());
+            RawRouCoeLevel2 = std::stof(rawRouCoeLevel2Element->GetText());
+            RawRouCoeLevel3 = std::stof(rawRouCoeLevel3Element->GetText());
+            RawRouCoeLevel4 = std::stof(rawRouCoeLevel4Element->GetText());
+            CalCoe = std::stof(calCoeElement->GetText());
+        }
+    }
+}
+
+void AlsCorrection::loadSeperateLuxParameters(XMLElement* argsElement)
+{
+    XMLElement* seperateLuxElement = argsElement->FirstChildElement("SeperateLux");
+    if (!seperateLuxElement) {
+        return;
     }
 
-    XMLElement* calElem = args->FirstChildElement("Cal");
-    if (calElem) {
-        calElem->FirstChildElement("RawRouCoeLevel1")->QueryFloatText(&conf.sensor_inverse_gain[3]);
-        calElem->FirstChildElement("RawRouCoeLevel2")->QueryFloatText(&conf.sensor_inverse_gain[2]);
-        calElem->FirstChildElement("RawRouCoeLevel3")->QueryFloatText(&conf.sensor_inverse_gain[1]);
-        calElem->FirstChildElement("RawRouCoeLevel4")->QueryFloatText(&conf.sensor_inverse_gain[0]);
+    seperateLuxElement->QueryIntAttribute("RetType", &RetType);
+    seperateLuxElement->QueryIntAttribute("ParagraphCount", &ParagraphCount);
+    seperateLuxElement->QueryFloatAttribute("SeperatePoint1", &SeperatePoint1);
+    seperateLuxElement->QueryFloatAttribute("SeperatePoint2", &SeperatePoint2);
+    seperateLuxElement->QueryFloatAttribute("SeperatePoint3", &SeperatePoint3);
+    seperateLuxElement->QueryFloatAttribute("SeperatePoint4", &SeperatePoint4);
+    seperateLuxElement->QueryFloatAttribute("SP1value1", &SP1value1);
+    seperateLuxElement->QueryFloatAttribute("SP1value2", &SP1value2);
+    seperateLuxElement->QueryFloatAttribute("SP2value1", &SP2value1);
+    seperateLuxElement->QueryFloatAttribute("SP2value2", &SP2value2);
+    seperateLuxElement->QueryFloatAttribute("SP3value1", &SP3value1);
+    seperateLuxElement->QueryFloatAttribute("SP3value2", &SP3value2);
+    seperateLuxElement->QueryFloatAttribute("SP4value1", &SP4value1);
+    seperateLuxElement->QueryFloatAttribute("SP4value2", &SP4value2);
+    seperateLuxElement->QueryFloatAttribute("SP5value1", &SP5value1);
+    seperateLuxElement->QueryFloatAttribute("SP5value2", &SP5value2);
+}
 
-        // Additional calibration parameter
-        //calElem->FirstChildElement("CalCoe")->QueryFloatText(&conf.sensor_inverse_gain[0]);
-    }
+void AlsCorrection::init() {
+    const char* xmlPath = ALS_ARGS_DIR "/" ALS_ARGS_XML2;
 
-    XMLElement* seperateLuxElem = args->FirstChildElement("SeperateLux");
-    if (seperateLuxElem) {
-        seperateLuxElem->FirstChildElement("SeperatePoint1")->QueryFloatText(&conf.sensor_gaincal_points[0]);
-        seperateLuxElem->FirstChildElement("SeperatePoint2")->QueryFloatText(&conf.sensor_gaincal_points[1]);
-        seperateLuxElem->FirstChildElement("SeperatePoint3")->QueryFloatText(&conf.sensor_gaincal_points[2]);
-        seperateLuxElem->FirstChildElement("SeperatePoint4")->QueryFloatText(&conf.sensor_gaincal_points[3]);
-    }
+    XMLDocument xmlDoc;
+    int loadResult = xmlDoc.LoadFile(xmlPath);
+    if (loadResult == XML_SUCCESS && (argsElement = xmlDoc.FirstChildElement("Args"))) {
+        loadRGBW(argsElement);
+        loadGrayAndCal(argsElement);
+        //loadArraysFromXML(argsElement);
+        loadSeperateLuxParameters(argsElement);
+        //loadFPAlphaFunctionParameters(argsElement);
+        //loadDCFunctionParameters(argsElement);
+        //loadPWMFunctionParameters(argsElement);
+        //loadSpecialCustomParameters(argsElement);
+        mloadArgsFromXMLAlready = true;
+        ALOGI("loadArgsFromXML: XML parameters loaded successfully");
+    } else {
+        ALOGE("loadArgsFromXML: XML loading failed");
+   }
 
     float rgbw_acc = 0.0;
     for (int i = 0; i < 4; i++) {
