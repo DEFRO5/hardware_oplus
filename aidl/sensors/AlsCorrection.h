@@ -20,7 +20,7 @@ class AlsCorrection {
     static void loadGrayAndCal(XMLElement* argsElement);
     static void loadSeperateLuxParameters(XMLElement* argsElement);
     static void init();
-    static void process(Event& event);
+    static void process(Event& event, int current_brightness);
 
   private:
     static bool mloadArgsFromXMLAlready;

@@ -22,7 +22,6 @@ using android::base::GetProperty;
 using namespace tinyxml2;
 
 #define ALS_CALI_DIR "/proc/sensor/als_cali/"
-#define BRIGHTNESS_DIR "/sys/class/backlight/panel0-backlight/"
 #define ALS_ARGS_DIR "/odm/etc/fusionlight_profile"
 #define ALS_ARGS_XML2 "oplus_fusion_light_args_2.xml"
 
@@ -109,7 +108,6 @@ struct als_config {
     float sensor_inverse_gain[4];
     float agc_threshold;
     float calib_gain;
-    float bias;
     float max_brightness;
 };
 
@@ -297,7 +295,7 @@ void AlsCorrection::init() {
     conf.calib_gain = cali_coe > 0.0 ? cali_coe / 1000.0 : 1.0;
     ALOGI("Calibrated sensor gain: %.2fx", 1.0 / (conf.calib_gain * conf.sensor_inverse_gain[0]));
 
-    conf.max_brightness = get(BRIGHTNESS_DIR "max_brightness", 1023.0);
+    conf.max_brightness = 2784.0f;
 
     for (auto& range : hysteresis_ranges) {
         range.min /= conf.calib_gain * conf.sensor_inverse_gain[0];
@@ -315,23 +313,18 @@ void AlsCorrection::init() {
     }
 }
 
-void AlsCorrection::process(Event& event) {
+void AlsCorrection::process(Event& event, int current_brightness) {
     static AreaRgbCaptureResult screenshot = { 0.0, 0.0, 0.0 };
 
     ALOGV("Raw sensor reading: %.0f", event.u.scalar);
 
-    if (event.u.scalar > conf.bias) {
-        event.u.scalar -= conf.bias;
-    }
-
     nsecs_t now = systemTime(SYSTEM_TIME_BOOTTIME);
-    float brightness = get(BRIGHTNESS_DIR "brightness", 0.0);
 
     if (state.last_update == 0) {
         state.last_update = now;
         state.last_forced_update = now;
     } else {
-        if (brightness > 0.0 && (now - state.last_forced_update) > s2ns(3)) {
+        if (current_brightness > 0.0 && (now - state.last_forced_update) > s2ns(3)) {
             ALOGV("Forcing screenshot");
             state.last_forced_update = now;
             state.force_update = true;
@@ -378,8 +371,8 @@ void AlsCorrection::process(Event& event) {
                 cumulative_correction -= corr;
             }
         }
-        cumulative_correction *= brightness / conf.max_brightness;
-        float brightness_fullwhite = conf.rgbw_max_lux[3] * brightness / conf.max_brightness;
+        cumulative_correction *= current_brightness / conf.max_brightness;
+        float brightness_fullwhite = conf.rgbw_max_lux[3] * current_brightness / conf.max_brightness;
         float brightness_grayscale_gamma = std::pow(rgbw[3] / 255.0, 2.2) * brightness_fullwhite;
         cumulative_correction = std::min(cumulative_correction, brightness_fullwhite);
         cumulative_correction = std::max(cumulative_correction, brightness_grayscale_gamma);

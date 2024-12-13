@@ -31,6 +31,8 @@
 #include <functional>
 #include <thread>
 
+#define BRIGHTNESS_DIR "/sys/class/backlight/panel0-backlight/"
+
 namespace android {
 namespace hardware {
 namespace sensors {
@@ -712,10 +714,18 @@ void HalProxy::postEventsToMessageQueue(const std::vector<Event>& eventsList, si
     if (wakelock.isLocked()) {
         incrementRefCountAndMaybeAcquireWakelock(numWakeupEvents);
     }
+
+    float current_brightness = 0.0f;
+    std::ifstream brightnessFile(BRIGHTNESS_DIR "brightness");
+    if (brightnessFile.is_open()) {
+        brightnessFile >> current_brightness;
+        brightnessFile.close();
+    }
+
     std::vector<Event> events(eventsList);
     for (auto& event : events) {
         if (static_cast<int>(event.sensorType) == SENSOR_TYPE_QTI_WISE_LIGHT) {
-            AlsCorrection::process(event);
+            AlsCorrection::process(event, current_brightness);
         }
     }
     if (mPendingWriteEventsQueue.empty()) {
