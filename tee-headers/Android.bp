@@ -1,0 +1,5 @@
+cc_library_headers {
+    name: "tee_headers.oplus",
+    export_include_dirs: ["include"],
+    vendor: true,
+}
