@@ -7,7 +7,13 @@
 cc_defaults {
     name: "libshims_aidl_fingerprint.oplus_defaults",
     srcs: ["SensorPropsShim.cpp"],
-    shared_libs: ["libbase"],
+    shared_libs: [
+        "libbase",
+        "libgui",
+    ],
+    include_dirs: [
+        "frameworks/native/include",
+    ],
     device_specific: true,
 }
 

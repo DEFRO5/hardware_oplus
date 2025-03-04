@@ -13,10 +13,13 @@
 #include <android-base/strings.h>
 
 #include <dlfcn.h>
+#include <gui/SurfaceComposerClient.h>
+#include <ui/DynamicDisplayInfo.h>
 
 using android::base::GetProperty;
 using android::base::ParseInt;
 using android::base::Tokenize;
+using android::SurfaceComposerClient;
 
 using aidl::android::hardware::biometrics::fingerprint::FingerprintSensorType;
 using aidl::android::hardware::biometrics::fingerprint::SensorProps;
@@ -37,21 +40,6 @@ SensorProps SensorPropsInit(SensorProps props) {
             props.sensorType = FingerprintSensorType::HOME_BUTTON;
     }
 
-    auto loc_prop = GetProperty("persist.vendor.fingerprint.optical.sensorlocation", "");
-    if (!loc_prop.empty()) {
-        auto loc = Tokenize(loc_prop, ":");
-        bool loc_parsed = false;
-        if (loc.size() >= 2) {
-            int32_t x, y;
-            loc_parsed = ParseInt(loc[0], &x) && ParseInt(loc[1], &y);
-            if (loc_parsed) {
-                props.sensorLocations[0].sensorLocationX = x;
-                props.sensorLocations[0].sensorLocationY = y;
-            }
-        }
-        LOG_IF(WARNING, !loc_parsed) << "Invalid sensor location input (x::y): " << loc_prop;
-    }
-
     auto size = GetProperty("persist.vendor.fingerprint.optical.iconsize", "");
     if (!size.empty()) {
         if (ParseInt(size, &props.sensorLocations[0].sensorRadius)) {
@@ -61,6 +49,39 @@ SensorProps SensorPropsInit(SensorProps props) {
         }
     }
 
+    android::ui::DynamicDisplayInfo info;
+    const auto displayIds = SurfaceComposerClient::getPhysicalDisplayIds();
+    
+    if (displayIds.empty()) {
+        LOG(ERROR) << "No physical displays found";
+        return props;
+    }
+    
+    if (SurfaceComposerClient::getDynamicDisplayInfoFromId(displayIds[0].value, &info) == 0) {
+        if (info.supportedDisplayModes.empty()) {
+            LOG(ERROR) << "No valid display modes found";
+            return props;
+        }
+
+        const auto& mode = info.supportedDisplayModes.back();
+        const int32_t width = mode.resolution.getWidth();
+        const int32_t height = mode.resolution.getHeight();
+
+        props.sensorLocations[0].sensorLocationX = width / 2;
+
+        auto iconLocation = GetProperty("persist.vendor.fingerprint.optical.iconlocation", "");
+        if (!iconLocation.empty()) {
+            int32_t locationY;
+            if (ParseInt(iconLocation, &locationY)) {
+                props.sensorLocations[0].sensorLocationY = height - locationY;
+            } else {
+                LOG(WARNING) << "Invalid icon location input: " << iconLocation;
+            }
+        }
+    } else {
+        LOG(ERROR) << "Failed to get display info";
+    }
+    
     return props;
 }
 }  // anonymous namespace
