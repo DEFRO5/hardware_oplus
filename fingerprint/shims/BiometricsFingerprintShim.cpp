@@ -40,7 +40,7 @@ int __system_property_get(const char* __name, char* __value) {
     return __system_property_get_orig(__name, __value);
 }
 
-int property_get(const char* key, char* value, const char* default_value) {
+extern "C" int property_get(const char* key, char* value, const char* default_value) {
     static auto property_get_orig =
             reinterpret_cast<typeof(property_get)*>(dlsym(RTLD_NEXT, "property_get"));
 
@@ -49,6 +49,10 @@ int property_get(const char* key, char* value, const char* default_value) {
         return strlen(strcpy(value, "unlocked"));
     }
 
+    if (strcmp(key, "ro.boot.verifiedbootstate") == 0) {
+        ALOGV("Returning orange for ro.boot.verifiedbootstate");
+        return strlen(strcpy(value, "orange"));
+    }
+
     return property_get_orig(key, value, default_value);
 }
-} // extern "C"

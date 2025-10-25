@@ -1,1 +1,5 @@
+<<<<<<< HEAD
 allow hal_secure_element_default nfc_device:chr_file { getattr };
+=======
+allow hal_secure_element_default nfc_device:chr_file rw_file_perms;
+>>>>>>> upstream/lineage-23.0

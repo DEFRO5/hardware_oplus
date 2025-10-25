@@ -28,7 +28,82 @@ aidl_interface {
 }
 
 aidl_interface {
+    name: "vendor.oplus.hardware.biometrics.fingerprintpay",
+    system_ext_specific: true,
+    odm_available: true,
+    local_include_dir: "aidl",
+    srcs: ["aidl/vendor/oplus/hardware/biometrics/fingerprintpay/*.aidl"],
+    stability: "vintf",
+    owner: "oplus",
+
+    backend: {
+        cpp: {
+            enabled: true,
+        },
+        java: {
+            sdk_version: "module_current",
+        },
+    },
+    versions_with_info: [
+        {
+            version: "1",
+            imports: [],
+        },
+    ],
+}
+
+aidl_interface {
+    name: "vendor.oplus.hardware.charger",
+    system_ext_specific: true,
+    odm_available: true,
+    local_include_dir: "aidl",
+    srcs: ["aidl/vendor/oplus/hardware/charger/*.aidl"],
+    stability: "vintf",
+    owner: "oplus",
+
+    backend: {
+        cpp: {
+            enabled: true,
+        },
+        java: {
+            sdk_version: "module_current",
+        },
+    },
+    versions_with_info: [
+        {
+            version: "1",
+            imports: [],
+        },
+        {
+            version: "2",
+            imports: [],
+        },
+        {
+            version: "3",
+            imports: [],
+        },
+        {
+            version: "5",
+            imports: [],
+        },
+        {
+            version: "6",
+            imports: [],
+        },
+        {
+            version: "7",
+            imports: [],
+        },
+        {
+            version: "8",
+            imports: [],
+        },
+    ],
+}
+
+aidl_interface {
     name: "vendor.oplus.hardware.commondcs",
+    system_ext_specific: true,
     vendor_available: true,
     local_include_dir: "aidl",
     srcs: ["aidl/vendor/oplus/hardware/commondcs/*.aidl"],
@@ -52,7 +127,33 @@ aidl_interface {
 }
 
 aidl_interface {
+    name: "vendor.oplus.hardware.esim",
+    system_ext_specific: true,
+    odm_available: true,
+    local_include_dir: "aidl",
+    srcs: ["aidl/vendor/oplus/hardware/esim/*.aidl"],
+    stability: "vintf",
+    owner: "oplus",
+
+    backend: {
+        cpp: {
+            enabled: true,
+        },
+        java: {
+            sdk_version: "module_current",
+        },
+    },
+    versions_with_info: [
+        {
+            version: "1",
+            imports: [],
+        },
+    ],
+}
+
+aidl_interface {
     name: "vendor.oplus.hardware.osense.client",
+    system_ext_specific: true,
     vendor_available: true,
     local_include_dir: "aidl",
     srcs: ["aidl/vendor/oplus/hardware/osense/client/*.aidl"],
@@ -76,7 +177,62 @@ aidl_interface {
 }
 
 aidl_interface {
+    name: "vendor.oplus.hardware.performance",
+    system_ext_specific: true,
+    vendor_available: true,
+    local_include_dir: "aidl",
+    srcs: ["aidl/vendor/oplus/hardware/performance/*.aidl"],
+    stability: "vintf",
+    owner: "oplus",
+
+    backend: {
+        cpp: {
+            enabled: true,
+        },
+        java: {
+            sdk_version: "module_current",
+        },
+    },
+    versions_with_info: [
+        {
+            version: "1",
+            imports: [],
+        },
+    ],
+}
+
+aidl_interface {
+    name: "vendor.oplus.hardware.radio",
+    system_ext_specific: true,
+    vendor_available: true,
+    local_include_dir: "aidl",
+    srcs: ["aidl/vendor/oplus/hardware/radio/*.aidl"],
+    stability: "vintf",
+    owner: "oplus",
+
+    backend: {
+        cpp: {
+            enabled: true,
+        },
+        java: {
+            sdk_version: "module_current",
+        },
+    },
+    versions_with_info: [
+        {
+            version: "1",
+            imports: [],
+        },
+        {
+            version: "2",
+            imports: [],
+        },
+    ],
+}
+
+aidl_interface {
     name: "vendor.oplus.hardware.touch",
+    system_ext_specific: true,
     vendor_available: true,
     local_include_dir: "aidl",
     srcs: ["aidl/vendor/oplus/hardware/touch/*.aidl"],
@@ -101,4 +257,34 @@ aidl_interface {
             imports: [],
         },
     ],
+}
+
+aidl_interface {
+    name: "vendor.oplus.hardware.urcc",
+    system_ext_specific: true,
+    vendor_available: true,
+    local_include_dir: "aidl",
+    srcs: ["aidl/vendor/oplus/hardware/urcc/*.aidl"],
+    stability: "vintf",
+    owner: "oplus",
+
+    backend: {
+        cpp: {
+            enabled: true,
+        },
+        ndk: {
+            gen_log: true,
+        },
+        java: {
+            sdk_version: "module_current",
+        },
+    },
+    versions_with_info: [
+        {
+            version: "1",
+            imports: [],
+        },
+
+    ],
+    frozen: true,
 }

@@ -1,0 +1,24 @@
+//
+// Copyright (C) 2022-2025 The LineageOS Project
+//
+// SPDX-License-Identifier: Apache-2.0
+//
+
+android_app {
+    name: "IFAAService",
+    srcs: [
+        "src/**/*.kt",
+        "src/**/*.aidl",
+    ],
+    aidl: {
+        local_include_dirs: ["src"],
+    },
+
+    static_libs: [
+        "vendor.oplus.hardware.biometrics.fingerprintpay-V1-java",
+    ],
+
+    certificate: "platform",
+    platform_apis: true,
+    system_ext_specific: true,
+}

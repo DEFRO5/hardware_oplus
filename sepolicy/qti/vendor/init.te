@@ -1,1 +1,5 @@
+<<<<<<< HEAD
 allow init vendor_sysfs_usb_supply:file w_file_perms;
+=======
+allow init vendor_reserve_partition:{ blk_file lnk_file } relabelto;
+>>>>>>> upstream/lineage-23.0

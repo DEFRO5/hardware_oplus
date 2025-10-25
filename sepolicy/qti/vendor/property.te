@@ -1,11 +1,20 @@
+# eSIM
+vendor_internal_prop(vendor_oplus_esim_prop)
+
 # Fingerprint
 vendor_internal_prop(vendor_fingerprint_prop)
+
+# Fingerprint Pay
+vendor_internal_prop(vendor_oplus_rpmb_enable_state_prop)
 
 # Modem
 vendor_internal_prop(vendor_modem_prop)
 
 # RIL
 vendor_internal_prop(vendor_nw_exported_system_prop)
+
+# Thermal
+vendor_internal_prop(vendor_thermal_engine_prop)
 
 # Touch
 vendor_internal_prop(vendor_oplus_touch_prop)
